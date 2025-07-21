@@ -1,0 +1,86 @@
+version: '3.9'
+
+services:
+  auth-service:
+    build:
+      context: ./services/auth-service
+    container_name: veltrix-auth
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./services/auth-service:/app
+    networks:
+      - veltrix-net
+    depends_on:
+      - auth-db
+
+  campaign-ingest-service:
+    build:
+      context: ./services/campaign-ingest-service
+    container_name: veltrix-campaign
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./services/campaign-ingest-service:/app
+    networks:
+      - veltrix-net
+
+  html-render-service:
+    build:
+      context: ./services/html-render-service
+    container_name: veltrix-html
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./services/html-render-service:/app
+    networks:
+      - veltrix-net
+
+  ia-personalization-service:
+    build:
+      context: ./services/ia-personalization-service
+    container_name: veltrix-ia
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./services/ia-personalization-service:/app
+    networks:
+      - veltrix-net
+  
+
+  auth-db:
+    image: postgres:15
+    container_name: veltrix-auth-db
+    environment:
+      POSTGRES_USER: veltrix
+      POSTGRES_PASSWORD: veltrix123
+      POSTGRES_DB: authdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    networks:
+      - veltrix-net
+
+
+  gateway:
+    image: nginx:latest
+    container_name: veltrix-gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - auth-service
+      - campaign-ingest-service
+      - html-render-service
+      - ia-personalization-service
+    networks:
+      - veltrix-net
+
+networks:
+  veltrix-net:
+    driver: bridge
+
+volumes:
+  auth_db_data:
